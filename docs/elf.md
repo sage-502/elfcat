@@ -50,7 +50,8 @@ ELF는 단순한 바이너리 파일이 아니라,
 
 ### 2.1 ELF Header
 
-```
+#### 구조체
+``` c
 typedef struct
 {
 	unsigned char	e_ident[EI_NIDENT];	/* Magic number and other info */
@@ -72,23 +73,89 @@ typedef struct
 
 #### 주요 필드
 
-| 필드 | 의미 | 내용 |
+| 필드 | 의미 | 설명 |
 | ---- | ---- | ---- |
-| e_ident | ELF인지 판별 + 기본 정보 | 매직넘버(0~3), 32bit/64bit(4), 엔디안(5), ELF 버전(6) |
+| e_ident | ELF인지 판별 + 기본 정보 | 매직넘버(0~3), 32bit/64bit(4), 엔디안(5), ELF 버전(6) : 총 16bytes |
 | e_entry | 프로그램 시작 주소 | |
-| e_phoff | Program Header 시작 위치 (offset) | |
-| e_shoff | Section Header 시작 위치 (offset) | |
-| e_phnum | | |
-| e_shnum | | |
-| e_shstrndx | | |
+| e_phoff | Program Header 시작 위치 (offset) | ProgramHeader = base + e_phoff |
+| e_shoff | Section Header 시작 위치 (offset) | SectionHeader = base + e_shoff |
+| e_phnum | Program Header 개수 | 메모리에 로드할 단위(세그먼트) 개수 |
+| e_shnum | Section Header 개수 | 파일 내부 구성 요소(섹션) 개수 |
+| e_shstrndx | 섹션 이름 페이블 위치 | Section Header 내부 배열(`shstr`)에서 `.shstrtab`이 있는 인덱스 |
 
 
 ### 2.2 Program Header
 
+#### 구조체
+``` c
+typedef struct
+{
+	Elf64_Word	p_type;			/* Segment type */
+	Elf64_Word	p_flags;		/* Segment flags */
+	Elf64_Off	p_offset;		/* Segment file offset */
+	Elf64_Addr	p_vaddr;		/* Segment virtual address */
+	Elf64_Addr	p_paddr;		/* Segment physical address */
+	Elf64_Xword	p_filesz;		/* Segment size in file */
+	Elf64_Xword	p_memsz;		/* Segment size in memory */
+	Elf64_Xword	p_align;		/* Segment alignment */
+} Elf64_Phdr;
+```
+
+#### 주요 필드
+
+| 필드       | 의미         | 설명                                                     |
+| -------- | ---------- | ------------------------------------------------------ |
+| p_type   | Segment 타입 | PT_LOAD(메모리 로드), PT_DYNAMIC(동적 링킹), PT_INTERP(인터프리터) 등 |
+| p_flags  | Segment 권한 | PF_R(Read), PF_W(Write), PF_X(Execute)                 |
+| p_offset | 파일에서 위치    | file_address = file_base + p_offset                    |
+| p_vaddr  | 메모리 주소     | memory_address = base + p_vaddr                        |
+| p_filesz | 파일에서 크기    | 실제 파일에 존재하는 데이터 크기                        |
+| p_memsz  | 메모리에서 크기   | 메모리에 할당되는 크기 (보통 p_memsz ≥ p_filesz)        |
+| p_align  | 정렬 단위      | 메모리 정렬 기준 (보통 0x1000, 페이지 단위)               |
 
 
 ### 2.3 Section Header
 
+### 구조체
 
+``` c
+typedef struct
+{
+	Elf64_Word	sh_name;		/* Section name (string tbl index) */
+	Elf64_Word	sh_type;		/* Section type */
+	Elf64_Xword	sh_flags;		/* Section flags */
+	Elf64_Addr	sh_addr;		/* Section virtual addr at execution */
+	Elf64_Off	sh_offset;		/* Section file offset */
+	Elf64_Xword	sh_size;		/* Section size in bytes */
+	Elf64_Word	sh_link;		/* Link to another section */
+	Elf64_Word	sh_info;		/* Additional section information */
+	Elf64_Xword	sh_addralign;		/* Section alignment */
+	Elf64_Xword	sh_entsize;		/* Entry size if section holds table */
+} Elf64_Shdr;
+```
+
+#### 주요 필드
+
+| 필드           | 의미             | 설명                                   |
+| ------------ | -------------- | -------------------------------------------------|
+| sh_name      | 섹션 이름 (offset) | 문자열이 아니라 `.shstrtab`에서의 offset             |
+| sh_type      | 섹션 타입          | SHT_PROGBITS(.text), SHT_SYMTAB, SHT_STRTAB, SHT_NOBITS(.bss) 등 |
+| sh_flags     | 섹션 속성          | SHF_ALLOC(메모리 로드), SHF_WRITE(쓰기), SHF_EXECINSTR(실행)             |
+| sh_addr      | 메모리 주소         | 실행 시 해당 Section이 올라가는 주소             |
+| sh_offset    | 파일 위치 (offset) | section_data = base + sh_offset               |
+| sh_size      | 섹션 크기          | 해당 Section의 전체 크기                       |
+| sh_link      | 다른 섹션 참조       | 예: `.symtab` → `.strtab` 연결                  |
+| sh_info      | 추가 정보          | Section별로 의미 다름 (보통 인덱스/정보값)           |
+| sh_addralign | 정렬 단위          | 메모리 정렬 기준                                  |
+| sh_entsize   | 엔트리 크기         | 테이블형 Section에서 각 entry 크기 (ex: symbol size)     |
 
 ### 2.4 Section Data
+
+
+
+---
+
+## References
+
+- GNU C Library (glibc), elf.h
+  https://www.gnu.org/software/libc/
