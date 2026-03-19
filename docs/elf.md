@@ -149,6 +149,9 @@ typedef struct
 | sh_addralign | 정렬 단위          | 메모리 정렬 기준                                  |
 | sh_entsize   | 엔트리 크기         | 테이블형 Section에서 각 entry 크기 (ex: symbol size)     |
 
+> 실제 실행 시에는 Program Header(PT_LOAD)가 기준이 되며,
+> Section은 분석을 위한 논리적 구분이다.
+
 ### 2.4 Section Data
 
 Section Data는 각 Section에 해당하는 실제 데이터가 저장된 영역이다.
@@ -519,7 +522,7 @@ hexdump -C -s 0x3519 -n 0x11f hello
 
 ### 4.5 `sh_name` offset으로 문자열 추출
 
-섹션 3에서 .text 영역의 Section Header로 추정했던 엔트리의 `sh_name` 은 `0xa1` 이었다.
+섹션 3에서 .init 영역의 Section Header로 추정했던 엔트리의 `sh_name` 은 `0xa1` 이었다.
 
 ```
 0x3519 + 0xa1 = 0x35ba
