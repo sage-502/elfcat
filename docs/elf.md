@@ -362,9 +362,9 @@ $ hexdump -C -s 0x3638 -n 0x40 hello
 ```
 전부 `00`으로 되어 있다.
 
-Section Header는 .text 섹션 엔트리만 보도록 하겠다.
+Section Header는 .init 섹션 엔트리만 보도록 하겠다.
 
-#### Section Header (.text) (offset 0x3938 ~ 0x3977)
+#### Section Header (.init) (offset 0x3938 ~ 0x3977)
 ```
 00003938  a1 00 00 00 01 00 00 00  06 00 00 00 00 00 00 00  |................|
 00003948  00 10 40 00 00 00 00 00  00 10 00 00 00 00 00 00  |..@.............|
@@ -378,7 +378,7 @@ Section Header는 .text 섹션 엔트리만 보도록 하겠다.
 00003938  a1 00 00 00 ...
 ```
 
-* `a1 00 00 00` → `0xa1` : section name string table offset (".text")
+* `a1 00 00 00` → `0xa1` : section name string table offset (".init")
 
 #### sh_type (0x04 ~ 0x07)
 
@@ -432,6 +432,107 @@ Section Header는 .text 섹션 엔트리만 보도록 하겠다.
 
 * `00 00 00 00 00 00 00 00` → 0 (entry 없음)
 
+---
+
+## 4. 실제 흐름
+
+실제 동작 방식으로는 다음과 같은 절차로 Section Header가 어느 것의 엔트리인지 알아낸다.
+
+1. `e_shstrndx` 확인
+2. 그 index의 Section Header 찾기
+3. 그 section의 `sh_offset` 찾기
+4. 거기서 문자열 테이블 읽기
+5. `sh_name` offset으로 문자열 추출
+
+### 4.1 `e_shstrndx` 확인
+
+앞서 ELF Header에서 `0x1e`임을 확인했다.
+
+### 4.2 그 index의 Section Header 찾기
+
+ELF Header에서 본 정보는 다음과 같다.
+```
+e_shoff     = 0x3638
+e_shentsize = 0x40
+e_shstrndx  = 0x1e (30)
+```
+따라서
+```
+offset = 0x3638 + (0x1e * 0x40)
+	   = 0x3db8
+```
+Section Header[0x1e]의 위치는 0x3db8이다.
+
+### 4.3 그 section의 `sh_offset` 찾기
+
+이것이 section name string table (.shstrtab) 이다.
+
+```
+$ hexdump -C -s 0x3db8 -n 0x40 hello
+00003db8  11 00 00 00 03 00 00 00  00 00 00 00 00 00 00 00  |................|
+00003dc8  00 00 00 00 00 00 00 00  19 35 00 00 00 00 00 00  |.........5......|
+00003dd8  1f 01 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00003de8  01 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+```
+
+#### sh_offset
+```
+19 35 00 00 00 00 00 00 → 0x3519
+```
+
+이것이 문자열 테이블의 실제 위치이다.
+
+#### sh_size
+
+```
+1f 01 00 00 00 00 00 00 → 0x11f (287 bytes)
+```
+
+그리고 문자열 전체 길이.
+
+### 4.4 거기서 문자열 테이블 읽기
+
+```
+hexdump -C -s 0x3519 -n 0x11f hello
+00003519  00 2e 73 79 6d 74 61 62  00 2e 73 74 72 74 61 62  |..symtab..strtab|
+00003529  00 2e 73 68 73 74 72 74  61 62 00 2e 69 6e 74 65  |..shstrtab..inte|
+00003539  72 70 00 2e 6e 6f 74 65  2e 67 6e 75 2e 70 72 6f  |rp..note.gnu.pro|
+00003549  70 65 72 74 79 00 2e 6e  6f 74 65 2e 67 6e 75 2e  |perty..note.gnu.|
+00003559  62 75 69 6c 64 2d 69 64  00 2e 6e 6f 74 65 2e 41  |build-id..note.A|
+00003569  42 49 2d 74 61 67 00 2e  67 6e 75 2e 68 61 73 68  |BI-tag..gnu.hash|
+00003579  00 2e 64 79 6e 73 79 6d  00 2e 64 79 6e 73 74 72  |..dynsym..dynstr|
+00003589  00 2e 67 6e 75 2e 76 65  72 73 69 6f 6e 00 2e 67  |..gnu.version..g|
+00003599  6e 75 2e 76 65 72 73 69  6f 6e 5f 72 00 2e 72 65  |nu.version_r..re|
+000035a9  6c 61 2e 64 79 6e 00 2e  72 65 6c 61 2e 70 6c 74  |la.dyn..rela.plt|
+000035b9  00 2e 69 6e 69 74 00 2e  70 6c 74 2e 73 65 63 00  |..init..plt.sec.|
+000035c9  2e 74 65 78 74 00 2e 66  69 6e 69 00 2e 72 6f 64  |.text..fini..rod|
+000035d9  61 74 61 00 2e 65 68 5f  66 72 61 6d 65 5f 68 64  |ata..eh_frame_hd|
+000035e9  72 00 2e 65 68 5f 66 72  61 6d 65 00 2e 69 6e 69  |r..eh_frame..ini|
+000035f9  74 5f 61 72 72 61 79 00  2e 66 69 6e 69 5f 61 72  |t_array..fini_ar|
+00003609  72 61 79 00 2e 64 79 6e  61 6d 69 63 00 2e 67 6f  |ray..dynamic..go|
+00003619  74 00 2e 67 6f 74 2e 70  6c 74 00 2e 64 61 74 61  |t..got.plt..data|
+00003629  00 2e 62 73 73 00 2e 63  6f 6d 6d 65 6e 74 00     |..bss..comment.|
+```
+
+`0x3519`에서부터 `0x11f` 출력한 결과이다.
+이것이 실제 문자열 테이블이다. 
+
+### 4.5 `sh_name` offset으로 문자열 추출
+
+섹션 3에서 .text 영역의 Section Header로 추정했던 엔트리의 `sh_name` 은 `0xa1` 이었다.
+
+```
+0x3519 + 0xa1 = 0x35ba
+```
+
+0x36ba를 출력해보면
+
+```
+$ hexdump -C -s 0x35ba -n 0x10 hello
+000035ba  2e 69 6e 69 74 00 2e 70  6c 74 2e 73 65 63 00 2e  |.init..plt.sec..|
+```
+
+`.init`이 맞다.
 
 ---
 
