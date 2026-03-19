@@ -539,7 +539,27 @@ $ hexdump -C -s 0x35ba -n 0x10 hello
 
 ---
 
-## 5. References
+## 5. 정리
+
+ELF는 단순한 실행 파일이 아니라,
+여러 구조체와 데이터 영역이 결합된 **구조화된 바이너리 포맷**이다.
+
+전체 구조는 크게 다음과 같이 나뉜다.
+
+* **ELF Header** : 파일의 전체 구조와 위치 정보를 담고 있는 메타데이터
+* **Program Header (Segment)** : 실행 시 메모리에 어떻게 로드되는지를 정의
+* **Section Header (Section)** : 파일 내부 구성 요소를 논리적으로 구분
+* **Section Data** : 실제 코드, 데이터, 문자열 등이 저장된 영역
+
+특히 ELF의 핵심 특징은
+실행 관점과 분석 관점이 분리되어 있다는 점이다.
+
+* 실행 시에는 Program Header (Segment) 기준으로 메모리에 로드되고
+* 분석 시에는 Section Header (Section) 기준으로 내부 구조를 파악한다
+
+---
+
+## 6. References
 
 * GNU C Library (glibc), elf.h
 * https://www.gnu.org/software/libc/
