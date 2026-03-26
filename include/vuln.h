@@ -5,4 +5,9 @@
 
 void analyze_vuln(elf_t *elf);
 
+/* 출력 함수 */
+void print_vuln_header(void);
+void print_vuln_found(const char *func);
+void print_no_symtab(void);
+
 #endif
