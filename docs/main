@@ -1,0 +1,69 @@
+#include <stdio.h>
+#include <string.h>
+#include "elf_parser.h"
+#include "vuln.h"
+
+static void print_usage(char *prog)
+{
+    printf("Usage: %s [option] <file>\n", prog);
+    printf("Options:\n");
+    printf("  --vuln        Detect vulnerable functions\n");
+}
+
+int main(int argc, char *argv[])
+{
+    elf_t elf;
+
+    if (argc < 3) {
+        print_usage(argv[0]);
+        return 1;
+    }
+
+    char *option = argv[1];
+    char *file = argv[2];
+
+    if (elf_parse(file, &elf) != 0) {
+        printf("[-] ELF parsing failed\n");
+        return 1;
+    }
+
+    if (strcmp(option, "--vuln") == 0) {
+        analyze_vuln(&elf);
+    } else {
+        print_usage(argv[0]);
+    }
+
+    elf_free(&elf);
+    return 0;
+}
+**GOT(Global Offset Table) 보호**
+
+- **종류**
+    1. Partial RELRO
+    2. Full RELRO
+- **ELF에서 확인**
+    - Program Header 중 `PT_GNU_RELRO` segment 존재
+          - RELRO가 적용된 ELF에만 나타남. 최소 Partial RELRO
+    - `PT_GNU_RELRO` segment에 `BIND_NOW` 있으면 Full RELRO
+
+### Partial RELRO
+
+- GOT 일부만 보호
+- `.got.plt`는 writable
+- 공격 가능: GOT overwrite 가능
+
+### Full RELRO
+
+- GOT 전체를 read-only로 변경
+- 공격 차단: GOT overwrite 불가능
+
+---
+
+## 정리
+
+| Mitigation | 막는 것 | 핵심 포인트 |
+| --- | --- | --- |
+| NX | 쉘코드 실행 | stack 실행 금지 |
+| PIE | 주소 고정 공격 | base 주소 랜덤 |
+| Canary | ret overwrite | 스택 무결성 체크 |
+| RELRO | GOT overwrite | GOT 보호 |
