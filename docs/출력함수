@@ -1,0 +1,25 @@
+/*
+ * 출력: 스캔 시작 메시지
+ */
+void print_vuln_header(void)
+{
+    printf("====================================\n");
+    printf("   Vulnerable Function Analysis\n");
+    printf("====================================\n");
+}
+
+/*
+ * 출력: 취약 함수 발견
+ */
+void print_vuln_found(const char *func)
+{
+    printf("[!] Vulnerable function detected: %s\n", func);
+}
+
+/*
+ * 출력: symbol table 없음
+ */
+void print_no_symtab(void)
+{
+    printf("[-] No symbol table found\n");
+}
