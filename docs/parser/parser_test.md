@@ -1,7 +1,33 @@
 # Parser 테스트 결과
 
+## 1. sample ELF 컴파일
+
+`/elfcat/sample/hello.c`
+``` c
+#include<stdio.h>
+
+int main(){
+    printf("Hello, world!");
+    return 0;
+}
+```
+64bit로 컴파일
+
+---
+
+## 2. 테스트용 `main`과 `elf_parser.c` 컴파일
+
 ```
 /elfcat/src$ gcc -I../include -o test elf_parser.c main.c
+```
+
+임시로 헤더파일 경로 작성함.
+
+---
+
+## 3. 샘플로 테스트
+
+```
 /elfcat/src$ ./test ../sample/hello
 === BASIC INFO ===
 Magic: ELF
