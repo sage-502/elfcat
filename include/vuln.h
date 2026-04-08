@@ -3,11 +3,21 @@
 
 #include "elf_parser.h"
 
-void analyze_vuln(elf_t *elf);
+typedef struct s_vuln_hit
+{
+    char name[64];
+    char category[64];
+    char severity[16];
+    char table_name[32];
+} vuln_hit_t;
 
-/* 출력 함수 */
-void print_vuln_header(void);
-void print_vuln_found(const char *func);
-void print_no_symtab(void);
+typedef struct s_vuln
+{
+    int count;
+    vuln_hit_t hits[128];
+} vuln_t;
+
+vuln_t analyze_vulnerability(elf_t *elf);
+void print_vuln(vuln_t v);
 
 #endif
