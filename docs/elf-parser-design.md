@@ -1,297 +1,245 @@
-# 📄 ELF Parser 설계 문서
+# 📄 ELF Parser 내부 설계(v2)
 
 ## 1. 개요
 
-본 모듈은 ELF(Executable and Linkable Format) 파일을 입력받아, </br>
-파일의 구조를 파싱하고 이를 구조체 형태로 반환하는 역할을 수행한다.
-
-이 파서는 이후 모듈(보호기법 분석, 취약점 탐지 등)의 기반 데이터로 사용된다.
-
-프로젝트 목표:
-사용자가 입력한 바이너리를 분석하여 구조 및 보안 정보를 제공 
+본 문서는 ELF 파서의 내부 설계를 정의한다.
+외부 인터페이스는 유지하면서, 내부 구조를 **파일 I/O와 파싱 단계로 분리**하여 안정성과 확장성을 확보한다.
 
 ---
 
-## 2. 역할 및 책임
+## 2. 전체 구조
 
-ELF Parser의 주요 역할은 다음과 같다:
+### 2.1 흐름
 
-* ELF 파일을 메모리에 로드
-* ELF Header 파싱
-* Program Header Table 파싱
-* Section Header Table 파싱
-* Section Name String Table 연결
-* 파싱 결과를 구조체(`elf_t`)에 저장
-
-Parser는 해석이 아니라 **데이터 제공 역할만 수행**
+```
+[CLI]
+  ↓ (파일 경로 입력)
+parse_elf()
+  ↓
+ ├── open_elf()
+ ├── init_elf()
+ ├── read_file()
+ ├── parse_ehdr()
+ ├── parse_phdr()
+ ├── parse_shdr()
+  ↓
+return elf_t*
+```
 
 ---
 
-## 3. 데이터 구조 설계
+## 3. 핵심 구조체
+
+### 3.1 elf_t
+
+ELF 파일 전체 상태를 담는 컨테이너 구조체
 
 ```c
 typedef struct s_elf
 {
-    /* 기본 헤더 */
-    Elf64_Ehdr ehdr;
+    /* ELF Header */
+    Elf64_Ehdr      ehdr;
 
     /* Program Header */
-    Elf64_Phdr *phdrs;
-    int phnum;
+    Elf64_Phdr      *phdrs;
+    int             phnum;
 
     /* Section Header */
-    Elf64_Shdr *shdrs;
-    int shnum;
+    Elf64_Shdr      *shdrs;
+    int             shnum;
 
     /* Section name string table */
-    char *shstrtab;
+    char            *shstrtab;
 
-    /* 파일 raw 데이터 */
-    unsigned char *data;
-    size_t size;
+    /* Raw file data */
+    unsigned char   *data;
+    size_t          size;
 
 } elf_t;
 ```
 
-### 설계 의도
-
-* `data`: ELF 전체를 메모리에 로드하여 offset 기반 접근 가능하도록 함
-* `ehdr`: ELF 전체 구조의 기준 정보 제공
-* `phdrs`: segment 기반 분석 (NX, PIE 등)
-* `shdrs`: section 기반 분석 (symbol, relocation 등)
-* `shstrtab`: section 이름 해석에 사용
-
 ---
 
-## 4. 전체 처리 흐름
+## 4. 설계 원칙
 
-```text
-[파일 입력]
-    ↓
-[파일 전체 메모리 로드]
-    ↓
-[ELF Header 파싱]
-    ↓
-[Program Header 파싱]
-    ↓
-[Section Header 파싱]
-    ↓
-[shstrtab 연결]
-    ↓
-[elf_t 반환]
-```
+### 4.1 파일 I/O와 파싱 분리
 
----
+* 파일 처리: `open`, `read`
+* 구조 해석: `parse_*`
 
-## 5. 상세 설계
+역할 분리를 통해 디버깅과 유지보수 용이
 
-### 5.1 파일 로딩
 
-#### 목적
+### 4.2 데이터 중심 구조
 
-파일 전체를 메모리에 로드하여 ELF의 offset 기반 구조를 처리하기 위함
+* 모든 데이터는 `elf_t`를 중심으로 관리
+* 이후 함수들은 `elf_t *`만을 인자로 받음
 
-#### 함수
+
+### 4.3 fd 사용 범위 제한
+
+* `fd`는 `parse_elf()` 내부에서만 사용
+* 이후 모든 처리는 `elf->data` 기반
+
+
+### 4.4 메모리 기반 파싱
+
+* 파일을 통째로 메모리에 로드
+* offset 기반으로 구조체 해석
 
 ```c
-int elf_load_file(const char *path, elf_t *elf);
-```
-
-#### 처리 과정
-
-* 파일 open
-* 파일 크기 확인 (fstat)
-* 메모리 할당
-* 전체 파일 read
-
----
-
-### 5.2 ELF Header 파싱
-
-#### 함수
-
-```c
-int elf_parse_ehdr(elf_t *elf);
-```
-
-#### 처리
-
-* `data`의 시작 부분에서 `Elf64_Ehdr` 복사
-* ELF 유효성 검사 수행
-
-#### 검증 항목
-
-* Magic Number (`0x7f 'ELF'`)
-* 64bit 여부 (`EI_CLASS`)
-* Endianness
-
----
-
-### 5.3 Program Header 파싱
-
-#### 함수
-
-```c
-int elf_parse_phdrs(elf_t *elf);
-```
-
-#### 처리
-
-* 위치: `ehdr.e_phoff`
-* 개수: `ehdr.e_phnum`
-
-```c
-phdrs[i] = *(Elf64_Phdr *)(data + offset);
-```
-
-#### 활용
-
-* NX 여부 확인 (PT_GNU_STACK)
-* PIE 여부 판단
-* 메모리 segment 분석
-
----
-
-### 5.4 Section Header 파싱
-
-#### 함수
-
-```c
-int elf_parse_shdrs(elf_t *elf);
-```
-
-#### 처리
-
-* 위치: `ehdr.e_shoff`
-* 개수: `ehdr.e_shnum`
-
----
-
-### 5.5 Section Name String Table 연결
-
-#### 함수
-
-```c
-int elf_parse_shstrtab(elf_t *elf);
-```
-
-#### 처리
-
-* index: `ehdr.e_shstrndx`
-* 해당 section의 offset 사용
-
-```c
-elf->shstrtab = data + shdrs[index].sh_offset;
-```
-
-#### 활용
-
-```c
-section_name = shstrtab + shdr.sh_name;
+elf->ehdr = *(Elf64_Ehdr *)elf->data;
 ```
 
 ---
 
-## 6. 함수 구조 설계
+## 5. 기능별 역할
+
+### 5.1 파일 I/O 계층
+
+#### open_elf
 
 ```c
-int elf_parse(const char *path, elf_t *elf)
-{
-    elf_load_file(path, elf);
+int open_elf(const char *filename);
+```
 
-    elf_parse_ehdr(elf);
-    elf_parse_phdrs(elf);
-    elf_parse_shdrs(elf);
-    elf_parse_shstrtab(elf);
+* ELF 파일 열기
+* 실패 시 에러 반환
 
-    return 0;
-}
+
+#### get_file_size
+
+```c
+size_t get_file_size(int fd);
+```
+
+* `lseek`를 이용해 파일 크기 반환
+
+
+#### read_file
+
+```c
+int read_file(int fd, elf_t *elf);
+```
+
+* 파일 전체를 `elf->data`에 저장
+* `elf->size` 설정
+
+
+### 5.2 초기화
+
+#### init_elf
+
+```c
+elf_t *init_elf(void);
+```
+
+* `elf_t` 메모리 할당
+* 구조체 초기화
+
+
+### 5.3 파싱 계층
+
+#### parse_ehdr
+
+```c
+void parse_ehdr(elf_t *elf);
+```
+
+* ELF Header 해석
+* ELF magic 검사
+
+
+#### parse_phdr
+
+```c
+void parse_phdr(elf_t *elf);
+```
+
+* Program Header 설정
+
+```c
+elf->phdrs = (Elf64_Phdr *)(elf->data + elf->ehdr.e_phoff);
+```
+
+
+#### parse_shdr
+
+```c
+void parse_shdr(elf_t *elf);
+```
+
+* Section Header 설정
+
+```c
+elf->shdrs = (Elf64_Shdr *)(elf->data + elf->ehdr.e_shoff);
 ```
 
 ---
 
-## 7. 메모리 관리
+## 6. 컨트롤러 함수
 
-#### 해제 함수
+### parse_elf
 
 ```c
-void elf_free(elf_t *elf);
+elf_t *parse_elf(const char *filename);
 ```
 
-#### 처리
+#### 역할
 
-* phdrs 해제
-* shdrs 해제
-* data 해제
+* 전체 파싱 흐름 제어
+* 각 단계 함수 호출
+* 최종 `elf_t` 반환
 
 ---
 
-## 8. 예외 처리 및 안정성
+## 7. 처리 단계 정리
 
-### 8.1 범위 검사
-
-```c
-offset + size <= elf->size
-```
-
-모든 접근 전에 반드시 검사
-
----
-
-### 8.2 오류 처리
-
-* malloc 실패 체크
-* 파일 read 실패 처리
-* ELF 형식이 아닐 경우 종료
+| 단계                | 설명            |
+| ----------------- | ------------- |
+| 파일 열기             | open_elf      |
+| 크기 확인             | get_file_size |
+| 파일 읽기             | read_file     |
+| ELF Header 파싱     | parse_ehdr    |
+| Program Header 파싱 | parse_phdr    |
+| Section Header 파싱 | parse_shdr    |
 
 ---
 
-## 9. 모듈 구조
+## 8. 에러 처리 정책
 
-```text
-parser/
- ├── elf_load.c
- ├── elf_parse_ehdr.c
- ├── elf_parse_phdr.c
- ├── elf_parse_shdr.c
- ├── elf_parse_shstrtab.c
+### 현재 (개발 단계)
 
-include/
- └── elf_parser.h
-```
+* `perror + exit` 사용
+* 빠른 디버깅 목적
+
+### 목표 (리팩토링 단계)
+
+* 함수 내부: `return NULL / -1`
+* main: 에러 출력 및 종료
 
 ---
 
-## 10. 다른 모듈과의 인터페이스
+## 9. 설계 장점
 
-### 입력
-
-```c
-const char *path
-```
-
-### 출력
-
-```c
-elf_t *elf
-```
-
-### 사용 예
-
-```c
-elf_t elf;
-
-elf_parse("a.out", &elf);
-
-/* 이후 */
-check_mitigation(&elf);
-analyze_symbols(&elf);
-```
+* 역할 분리로 가독성 향상
+* 디버깅 용이
+* 팀원 간 작업 분담 가능
+* 확장성 확보 (symbol table, mitigation 등)
 
 ---
 
-## 11. 확장 계획
+## 10. 향후 확장
 
 * Symbol Table 파싱
-* Relocation 분석
-* DWARF 정보 처리
+* Dynamic Section 파싱
+* Mitigation 분석 (NX, PIE, RELRO)
+* 취약 함수 탐지
+
+---
+
+## 11. 최종 요약
+
+> 본 설계는 ELF 파일을 메모리로 로드한 후,
+> offset 기반으로 구조체를 해석하는 방식이며,
+> 파일 I/O와 파싱 단계를 분리하여 안정성과 확장성을 확보한다.
