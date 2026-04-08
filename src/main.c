@@ -15,12 +15,14 @@ int main(int argc, char **argv)
 
     if (parse_elf(argv[1], &elf) != 0)
     {
-        printf("parse_elf failed\n");
+        printf("failed to parse elf file\n");
         return 1;
     }
 
     v = analyze_vulnerability(&elf);
+
     print_vuln(v);
+    free_vuln(&v);
 
     free_elf(&elf);
     return 0;
