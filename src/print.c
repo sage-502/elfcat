@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "vuln.h"
+#include "mitigation.h"
 
 void print_vuln(vuln_t v)
 {
