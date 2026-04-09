@@ -4,7 +4,7 @@
 # include "elf_parser.h"
 # include "mitigation.h"
 # include "vuln.h"
-
+# include "print.h"
 
 int main(int argc, char **argv)
 {
@@ -15,7 +15,7 @@ int main(int argc, char **argv)
     vuln_t v = analyze_vulnerability(elf);
 
     print_vuln(v);
-    print_mitigation(m);
+    print_result(m);
 
     free_elf(elf);
 

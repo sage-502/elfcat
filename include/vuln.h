@@ -16,7 +16,6 @@ typedef struct s_vuln
 } vuln_t;
 
 vuln_t analyze_vulnerability(elf_t *elf);
-void print_vuln(vuln_t v);
 void free_vuln(vuln_t *v);
 
 #endif

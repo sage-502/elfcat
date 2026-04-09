@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "vuln.h"
-#include "mitigation.h"
+
+#include "print.h"
 
 void print_vuln(vuln_t v)
 {
@@ -19,7 +19,7 @@ void print_vuln(vuln_t v)
     }
 }
 
-void print_mitigation(mitigation_t m)
+void print_result(mitigation_t m)
 {
     printf("NX: %s\n", m.nx ? "Enabled" : "Disabled");
     printf("PIE: %s\n", m.pie ? "Enabled" : "Disabled");
