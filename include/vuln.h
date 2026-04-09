@@ -1,7 +1,7 @@
 #ifndef VULN_H
 #define VULN_H
 
-#include "elf_parser.h"
+#include "common.h"
 
 #define MAX_VULN 32
 
