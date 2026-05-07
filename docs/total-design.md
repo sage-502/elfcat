@@ -126,13 +126,13 @@ typedef struct s_result
 
 } result_t;
 ```
+#### mitigation 출력
 
-vuln.h:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
-main.c:  print_result(m, v); 호출</br>
-vuln.c:  출력함수 정의됨 </br>
+`vuln.h`:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
+`main.c`:  print_result(m, v); 호출</br>
+`vuln.c`:  출력함수 정의됨 </br>
 
-
-```jsx
+```c
 #include <stdio.h>
 
 void print_mitigation(mitigation_t m)
@@ -150,6 +150,10 @@ void print_mitigation(mitigation_t m)
     printf("Canary: %s\n", m.canary ? "Enabled" : "Disabled");
 }
 ```
+
+#### 지정 함수 출력
+
+```c
 void print_vuln(vuln_t v)
 {
     int i;
@@ -166,7 +170,7 @@ void print_vuln(vuln_t v)
             printf("[%d] %s\n", i + 1, v.messages[i]);
     }
 }
-
+```
 ### 5) 메모리 동적 할당 해제 함수
 
 해제 대상:
