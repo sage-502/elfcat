@@ -1,6 +1,6 @@
 # 전체 구조
 
-```jsx
+```c
 [CLI]
   ↓ (파일 입력)
 [ELF 파서]
@@ -25,7 +25,7 @@ analyze_vuln()       → vuln_t
 
 ## elf_t
 
-```python
+```c
 typedef struct s_elf
 {
     Elf64_Ehdr ehdr;
@@ -46,7 +46,7 @@ typedef struct s_elf
 
 ## 전체 흐름(main 함수)
 
-```jsx
+```c
 int main(int argc, char **argv)
 {
     elf_t *elf = parse_elf(argv[1]);
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
 ## mitigation_t
 
-```jsx
+```c
 typedef struct s_mitigation
 {
     int nx;
@@ -78,7 +78,7 @@ typedef struct s_mitigation
 
 ## 함수 시그니처
 
-```jsx
+```c
 mitigation_t analyze_mitigation(elf_t *elf)
 {
     mitigation_t m;
@@ -98,7 +98,7 @@ main.c:  print_result(m, v); 호출</br>
 vuln.c:  출력함수 정의됨 </br>
 
 
-```jsx
+```c
 #include <stdio.h>
 
 void print_mitigation(mitigation_t m)
