@@ -1,25 +1,15 @@
-/*
- * 출력: 스캔 시작 메시지
- */
-void print_vuln_header(void)
-{
-    printf("====================================\n");
-    printf("   Vulnerable Function Analysis\n");
-    printf("====================================\n");
-}
 
-/*
- * 출력: 취약 함수 발견
- */
-void print_vuln_found(const char *func)
-{
-    printf("[!] Vulnerable function detected: %s\n", func);
-}
+---
 
-/*
- * 출력: symbol table 없음
- */
-void print_no_symtab(void)
-{
-    printf("[-] No symbol table found\n");
-}
+# 📄 `출력함수.md`
+
+```markdown
+# 출력 함수 (print_vuln)
+
+## 개요
+취약점 분석 결과를 사용자에게 출력하는 함수이다.
+
+## 함수 정의
+
+```c
+void print_vuln(vuln_t v)
