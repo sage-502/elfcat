@@ -127,6 +127,30 @@ typedef struct s_result
 } result_t;
 ```
 
+vuln.h:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
+main.c:  print_result(m, v); 호출</br>
+vuln.c:  출력함수 정의됨 </br>
+
+
+```jsx
+#include <stdio.h>
+
+void print_mitigation(mitigation_t m)
+{
+    printf("NX: %s\n", m.nx ? "Enabled" : "Disabled");
+    printf("PIE: %s\n", m.pie ? "Enabled" : "Disabled");
+
+    if (m.relro == 0)
+        printf("RELRO: No RELRO\n");
+    else if (m.relro == 1)
+        printf("RELRO: Partial RELRO\n");
+    else
+        printf("RELRO: Full RELRO\n");
+
+    printf("Canary: %s\n", m.canary ? "Enabled" : "Disabled");
+}
+```
+
 ### 5) 메모리 동적 할당 해제 함수
 
 해제 대상:
