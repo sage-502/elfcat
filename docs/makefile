@@ -1,22 +1,16 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -g
 
-SRC = main.c \
-      parser/elf_load.c \
-      parser/elf_parse_ehdr.c \
-      parser/elf_parse_phdr.c \
-      parser/elf_parse_shdr.c \
-      parser/elf_parse_shstrtab.c \
-      analysis/vuln.c
+---
 
-OBJ = $(SRC:.c=.o)
+# 📄 `Makefile.md`
 
-TARGET = elfsec
+```markdown
+# Makefile 설명
 
-all: $(TARGET)
+## 개요
+프로젝트 컴파일을 자동화하기 위한 Makefile이다.
 
-$(TARGET): $(OBJ)
-	$(CC) -o $(TARGET) $(OBJ)
+## 기본 컴파일 구조
 
-clean:
-	rm -f $(OBJ) $(TARGET)
+### 테스트용 빌드
+```bash
+gcc -Wall -Wextra -o test_vuln test_main.c vuln.c vuln_print.c
