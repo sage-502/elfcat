@@ -92,10 +92,17 @@ mitigation_t analyze_mitigation(elf_t *elf)
 }
 ```
 
-## 2. 출력 함수
-vuln.h:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
-main.c:  print_result(m, v); 호출</br>
-vuln.c:  출력함수 정의됨 </br>
+##  출력 함수
+`print.h`:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
+
+```c
+void print_vuln(vuln_t v);
+void print_result(mitigation_t m);
+```
+
+### mitigation 출력
+`main.c`:  호출</br>
+`print.c`: 함수 정의</br>
 
 
 ```c
