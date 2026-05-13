@@ -117,21 +117,16 @@ message 용도:
 ```
 
 ### 4) 최종 출력용 (CLI용)
+`print.h`:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
 
 ```c
-typedef struct s_result
-{
-    mitigation_t mitigation;
-    vuln_t vuln;
-
-} result_t;
+void print_vuln(vuln_t v);
+void print_result(mitigation_t m);
 ```
+
 #### mitigation 출력
-
-`vuln.h`:  void print_result(mitigation_t m, vuln_t v) 프로토타입</br>
-`main.c`:  print_result(m, v); 호출</br>
-`vuln.c`:  출력함수 정의됨 </br>
-
+`main.c`:  호출</br>
+`print.c`: 함수 정의</br>
 ```c
 #include <stdio.h>
 
